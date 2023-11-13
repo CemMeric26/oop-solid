@@ -52,6 +52,22 @@ public class Common {
         return customerMovementSpeed;
     }
 
+    private static final List<Store> simulationStores = new ArrayList<>();
+
+    private static final List<Customer> simulationCustomers = new ArrayList<>();
+
+    private static int lastReplenishmentStep = 0;
+
+
+    public static List<Store> getSimulationStores(){
+        return simulationStores;
+    }
+
+    public static List<Customer> getSimulationCustomers(){
+        return simulationCustomers;
+    }
+
+
     //TODO
     // put your necessary fields and methods here
     ////
@@ -90,6 +106,78 @@ public class Common {
     // like 4 stores for food, 3 stores for electronics and 4 stores for luxury etc.
     // Otherwise your simulation may deadlock
 
+    public static List<Product> createShoppingList(){
+        int listSize = randInt(minimumShoppingListLength,maximumShoppingListLength);
+        List<Product> shoppingList= null;
+
+        for(int i=0;i<listSize;i++)
+        {
+            switch (randInt(0,2)){
+                // add food
+                case 0:
+                    shoppingList.add(new FoodProduct());
+                case 1:
+                    shoppingList.add(new ElectronicsProduct());
+                case 2:
+                    shoppingList.add(new LuxuryProduct());
+            }
+
+        }
+
+        return shoppingList;
+
+    }
+
+    public static Customer createCustomer(){
+        double x = randInt(0,windowWidth-2*entityDiameter);
+        double y = randInt(0,windowHeight-2*entityDiameter);
+        List<Product> shoppingList = createShoppingList();
+        ShoppingStrategy strategy = null;
+        switch (randInt(0,2)){
+            case 0:
+                strategy = new CheapestStrategy();
+                break;
+            case 1:
+                strategy = new ClosestStrategy();
+                break;
+            case 2:
+                strategy = new TravellingStrategy();
+                break;
+        }
+
+        return new Customer(shoppingList,strategy,x,y);
+    }
+
+    private static int currentStoreType = 0;
+    public static Store createStore() {
+        double x = randInt(0,windowWidth-2*entityDiameter);
+        double y = randInt(0,windowHeight-2*entityDiameter);
+        int storageCapacity = randInt(stockStorageMin,stockStorageMax);
+        int price;
+        ProductType productType;
+        switch (currentStoreType){
+            case 0:
+                price = randInt(foodBottomPrice,foodCeilingPrice);
+                productType = ProductType.FOOD;
+            case 1:
+                price = randInt(electronicsBottomPrice,electronicsCeilingPrice);
+                productType = ProductType.ELECTRONICS;
+            case 2:
+            price = randInt(LuxuryBottomPrice,LuxuryCeilingPrice);
+            productType = ProductType.LUXURY;
+
+        }
+        currentStoreType = (currentStoreType + 1) % 3;
+        return new Store(productType,storageCapacity,price,x,y);
+    }
+    static {
+        for(int i=0;i<storeNo;i++){
+            simulationStores.add(createStore());
+        }
+        for(int i=0;i<customerNo;i++){
+            simulationCustomers.add(createCustomer());
+        }
+    }
     ////
     public static void stepAllEntities() {
         // TODO
@@ -99,6 +187,27 @@ public class Common {
         //    Replenish stocks of all stores on interval (stockReplenishmentFrequency)
 
         // Note that you should NOT handle transaction logic between customers and stores in here.
+
+        for(int i=0;i<customerNo;i++){
+            Customer c = simulationCustomers.get(i);
+            if(c.getPosition().getIntX()<-2*entityDiameter || c.getPosition().getIntX()>windowWidth || c.getPosition().getIntY()<-2*entityDiameter || c.getPosition().getIntY()>windowHeight){
+                simulationCustomers.set(i,createCustomer());
+
+            }
+        }
+        for(Store s:simulationStores){
+            s.step();
+        }
+        for(Customer c:simulationCustomers){
+            c.step();
+        }
+        lastReplenishmentStep++;
+        if(lastReplenishmentStep==stockReplenishmentFrequency){
+            for(Store s:simulationStores){
+                s.replenishStock();
+            }
+            lastReplenishmentStep=0;
+        }
 
 
         ////

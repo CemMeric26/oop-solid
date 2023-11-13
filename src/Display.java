@@ -12,8 +12,12 @@ public class Display extends JPanel {
         super.paintComponent(g);
 
         // TODO
-        // Draw all stores and customers
+        for (Store store : Common.getSimulationStores()) {
+            store.draw((Graphics2D) g);
+        }
+        for (Customer customer : Common.getSimulationCustomers()) {
+            customer.draw((Graphics2D) g);
+        }
 
-        ////
     }
 }
